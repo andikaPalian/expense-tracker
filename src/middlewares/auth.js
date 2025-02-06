@@ -23,6 +23,7 @@ const auth = async (req, res, next) => {
                     userId: user._id,
                     name: user.name,
                     email: user.email,
+                    balance: user.balance,
                 }
                 next();
             });
