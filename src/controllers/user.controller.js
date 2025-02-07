@@ -1,4 +1,5 @@
 import User from "../models/user.models.js";
+import Transaction from "../models/transaction.models.js";
 import validator from "validator";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -130,10 +131,19 @@ const userDashboard = async (req, res) => {
         const userResponse = user.toObject();
         delete userResponse.password;
 
+        const transactions = await Transaction.find({user: userId}).sort({createdAt: -1}).limit(10);
+
         res.status(200).json({
             message: "User dashboard",
             dashboard: {
-                user: userResponse
+                user: userResponse,
+                transactions: transactions.map(transaction => ({
+                    id: transaction._id,
+                    amount: transaction.amount,
+                    description: transaction.description,
+                    type: transaction.type,
+                    createdAt: transaction.createdAt,
+                }))
             }
         });
     } catch (error) {
