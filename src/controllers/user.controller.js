@@ -3,6 +3,7 @@ import Transaction from "../models/transaction.models.js";
 import validator from "validator";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import nodemailer from "nodemailer";
 
 const registerUser = async (req, res) => {
     try {
@@ -52,6 +53,22 @@ const registerUser = async (req, res) => {
         await user.save();
         const userResponse = user.toObject();
         delete userResponse.password;
+
+        let transport = nodemailer.createTransport({
+            host: process.env.MAILTRAP_HOST,
+            port: process.env.MAILTRAP_PORT,
+            auth: {
+            user: process.env.MAILTRAP_USER,
+            pass: process.env.MAILTRAP_PASS
+            }
+        });
+        
+        await transport.sendMail({
+            from: "test@gmai.com",
+            to: user.email,
+            subject: "Welcome to Expense Tracker",
+            text: "Thank you for registering with Expense Tracker. We are excited to have you on board!"
+        });
         
         res.status(201).json({
             message: "User register successfully",
