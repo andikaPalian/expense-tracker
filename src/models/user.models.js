@@ -17,7 +17,13 @@ const userSchema = new mongoose.Schema({
     balance: {
         type: Number,
         default: 0,
-    }
+    },
+    reset_code: {
+        type: String,
+    },
+    reset_code_expiration: {
+        type: Date,
+    },
 }, {
     timestamps: true,
 });
