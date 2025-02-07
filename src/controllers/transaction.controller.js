@@ -1,6 +1,7 @@
 import validator from "validator";
 import Transaction from "../models/transaction.models.js";
 import User from "../models/user.models.js";
+import mongoose from "mongoose";
 
 const addIncome = async (req, res) => {
     try {
@@ -171,4 +172,62 @@ const listTransactions = async (req, res) => {
     }
 }
 
-export {addIncome, addExpense, listTransactions};
+const deleteTransaction = async (req, res) => {
+    try {
+        const {transactionId} = req.params;
+        const userId = req.user.userId;
+
+        if (!mongoose.Types.ObjectId.isValid(transactionId)) {
+            return res.status(400).json({
+                message: "Invalid transaction ID"
+            });
+        }
+
+        const transaction = await Transaction.findOne({
+            _id: transactionId
+        });
+        if (!transaction) {
+            return res.status(404).json({
+                message: "Transaction not found"
+            });
+        }
+
+        if (transaction.transaction_type === "income") {
+            await User.updateOne({
+                _id: userId
+            }, {
+                $inc: {
+                    balance: -transaction.amount
+                }
+            }, {
+                runValidators: true
+            });
+        } else if (transaction.transaction_type === "expense") {
+            await User.updateOne({
+                _id: userId
+            }, {
+                $inc: {
+                    balance: transaction.amount
+                }
+            }, {
+                runValidators: true
+            });
+        }
+
+        await Transaction.deleteOne({
+            _id: transactionId,
+        });
+
+        res.status(200).json({
+            message: "Transaction deleted successfully"
+        });
+    } catch (error) {
+        console.error("Error during transaction deletion:", error);
+        return res.status(500).json({
+            message: "Internal server error",
+            error: error.message || "An unexpected error occurred",
+        });
+    }
+}
+
+export {addIncome, addExpense, listTransactions, deleteTransaction};
