@@ -158,7 +158,7 @@ const userDashboard = async (req, res) => {
                     id: transaction._id,
                     amount: transaction.amount,
                     description: transaction.description,
-                    type: transaction.type,
+                    type: transaction.transaction_type,
                     createdAt: transaction.createdAt,
                 }))
             }
