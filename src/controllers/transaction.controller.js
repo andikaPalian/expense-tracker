@@ -19,9 +19,15 @@ const addIncome = async (req, res) => {
             });
         }
 
-        if (amount < 0) {
+        if (amount <= 0) {
             return res.status(400).json({
-                message: "Amount must be positive number"
+                message: "Amount must be positive number and greater than 0"
+            });
+        }
+
+        if (typeof description !== "string") {
+            return res.status(400).json({
+                message: "Description must be a string"
             });
         }
 
@@ -77,9 +83,15 @@ const addExpense = async (req, res) => {
             });
         }
 
-        if (amount < 0) {
+        if (amount <= 0) {
             return res.status(400).json({
-                message: "Amount must be positive number"
+                message: "Amount must be positive number and greater than 0"
+            });
+        }
+
+        if (typeof description !== "string") {
+            return res.status(400).json({
+                message: "Description must be a string"
             });
         }
 
@@ -230,4 +242,90 @@ const deleteTransaction = async (req, res) => {
     }
 }
 
-export {addIncome, addExpense, listTransactions, deleteTransaction};
+const editTransaction = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const {transactionId} = req.params;
+        const {amount, description, transaction_type} = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(transactionId)) {
+            return res.status(400).json({
+                message: "Invalid transaction ID"
+            });
+        }
+
+        const transaction = await Transaction.findOne({
+            _id: transactionId,
+        });
+        if (!transaction) {
+            return res.status(404).json({
+                message: "Transaction not found"
+            });
+        }
+
+        if (!validator.isNumeric(amount.toString())) {
+            return res.status(400).json({
+                message: "Invalid amount. Must be a number"
+            });
+        }
+
+        if (amount <= 0) {
+            return res.status(400).json({
+                message: "Amount must be a positive number and greater than 0"
+            });
+        }
+
+        if (typeof description !== "string") {
+            return res.status(400).json({
+                message: "Description must be a string"
+            });
+        }
+
+        const validTransactionTypes = ["income", "expense"];
+        if (!validTransactionTypes.includes(transaction_type)) {
+            return res.status(400).json({
+                message: "Invalid transaction type. Must be either 'income' or 'expense'"
+            });
+        }
+
+        // const oldAmount = transaction.amount;
+        // const oldTransactionType = transaction.transaction_type;
+
+        transaction.amount = amount;
+        transaction.description = description;
+        transaction.transaction_type = transaction_type;
+        await transaction.save();
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found"
+            });
+        }
+
+        if (transaction.transaction_type === "income") {
+            user.balance += amount;
+        } else if (transaction.transaction_type === "expense") {
+            user.balance -= amount;
+        }
+
+        await user.save();
+
+        res.status(200).json({
+            message: "Transaction updated successfully",
+            transaction: {
+                amount: amount,
+                description: description,
+                type: transaction_type,
+            }
+        });
+    } catch (error) {
+        console.error("Error during transaction update:", error);
+        return res.status(500).json({
+            message: "Internal server error",
+            error: error.message || "An unexpected error occurred",
+        });
+    }
+}
+
+export {addIncome, addExpense, listTransactions, deleteTransaction, editTransaction};
